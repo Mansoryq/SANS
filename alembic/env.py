@@ -10,6 +10,15 @@ sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), '..'
 from app.core.config import settings
 from app.db.base import Base
 
+# Import all models here for Alembic autogenerate support
+from app.models.user import User
+from app.models.flight import Flight, FlightTimeline
+from app.models.passenger import Passenger
+from app.models.event import Event
+from app.models.notification import Notification
+from app.models.settings import AppSetting
+from app.models.log import AuditLog
+
 config = context.config
 
 if config.config_file_name is not None:

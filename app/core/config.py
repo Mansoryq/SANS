@@ -5,13 +5,21 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Smart Airport Notification System (SANS)"
     VERSION: str = "2.0.0"
     API_V1_STR: str = "/api"
+    ENVIRONMENT: str = "production"
     
     # Database
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./sans.db")
+    DATABASE_URL: str = "sqlite:///./sans.db"
+    DB_POOL_SIZE: int = 10
+    DB_MAX_OVERFLOW: int = 20
+    DB_POOL_RECYCLE: int = 1800
+    DB_POOL_TIMEOUT: int = 30
+    
+    # Redis
+    REDIS_URL: str = "redis://localhost:6379/0"
     
     # Security
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "sans-enterprise-secret-key-32bytes-long!")
-    ENCRYPTION_KEY: str = os.getenv("ENCRYPTION_KEY", "uH8-Xl0r2-j-9K1r_yv_P9M9M9M9M9M9M9M9M9M9M9M=")
+    SECRET_KEY: str = "sans-enterprise-secret-key-32bytes-long!"
+    ENCRYPTION_KEY: str = "uH8-Xl0r2-j-9K1r_yv_P9M9M9M9M9M9M9M9M9M9M9M="
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     
@@ -20,14 +28,14 @@ class Settings(BaseSettings):
     MAX_NOTIFICATION_RETRIES: int = 5
 
     # Observability & Analytics
-    SENTRY_DSN: str | None = os.getenv("SENTRY_DSN", None)
-    POSTHOG_API_KEY: str | None = os.getenv("POSTHOG_API_KEY", None)
-    POSTHOG_HOST: str = os.getenv("POSTHOG_HOST", "https://eu.i.posthog.com")
-    ANALYTICS_ENABLED: bool = os.getenv("ANALYTICS_ENABLED", "True").lower() in ("true", "1", "yes")
+    SENTRY_DSN: str | None = None
+    POSTHOG_API_KEY: str | None = None
+    POSTHOG_HOST: str = "https://eu.i.posthog.com"
+    ANALYTICS_ENABLED: bool = True
     
     # Supabase (Storage)
-    SUPABASE_URL: str | None = os.getenv("SUPABASE_URL", None)
-    SUPABASE_KEY: str | None = os.getenv("SUPABASE_KEY", None)
+    SUPABASE_URL: str | None = None
+    SUPABASE_KEY: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

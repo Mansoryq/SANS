@@ -3,8 +3,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.models.settings import AppSetting
 from app.core.encryption import encrypt_value
+from app.core.config import settings
 
-engine = create_engine("postgresql://postgres:postgres@localhost:5432/sans_db")
+engine = create_engine(settings.DATABASE_URL)
 Session = sessionmaker(bind=engine)
 db = Session()
 

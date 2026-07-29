@@ -3,17 +3,25 @@ import json
 import logging
 import redis
 from functools import wraps
-from typing import Callable, Any
+from typing import Callable, Any, Optional
+from redis import Redis
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 # Initialize Redis connection
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-try:
-    redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
-except Exception as e:
-    logger.error(f"Failed to connect to Redis: {e}")
-    redis_client = None
+redis_client: Optional[Redis] = None
+REDIS_URL = settings.REDIS_URL
+
+def get_redis_client() -> Redis:
+    global redis_client
+    if redis_client is None:
+        try:
+            redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
+        except Exception as e:
+            logger.error(f"Failed to connect to Redis: {e}")
+            redis_client = None
+    return redis_client
 
 def cache_response(ttl_seconds: int = 60):
     """
