@@ -1,0 +1,63 @@
+services:
+  - type: web
+    name: sans-web
+    env: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    plan: free
+    region: frankfurt
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: POSTHOG_API_KEY
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ENCRYPTION_KEY
+        sync: false
+      - key: ENVIRONMENT
+        value: production
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+
+  - type: worker
+    name: sans-worker
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerCommand: python worker.py
+    plan: free
+    region: frankfurt
+    envVars:
+      - key: DATABASE_URL
+        fromService:
+          type: web
+          name: sans-web
+          envVarKey: DATABASE_URL
+      - key: REDIS_URL
+        fromService:
+          type: web
+          name: sans-web
+          envVarKey: REDIS_URL
+      - key: SECRET_KEY
+        fromService:
+          type: web
+          name: sans-web
+          envVarKey: SECRET_KEY
+      - key: ENVIRONMENT
+        value: production
+      - key: SENTRY_DSN
+        fromService:
+          type: web
+          name: sans-web
+          envVarKey: SENTRY_DSN
+      - key: POSTHOG_API_KEY
+        fromService:
+          type: web
+          name: sans-web
+          envVarKey: POSTHOG_API_KEY

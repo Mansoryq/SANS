@@ -1,0 +1,65 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pip-audit
+        
+    - name: Run Dependency Vulnerability Scan
+      run: pip-audit --desc on || echo "Audit warnings found"
+      
+    - name: Run Ruff Linting
+      run: ruff check app tests
+      
+    - name: Run Black Formatting Check
+      run: black --check app tests
+      
+    - name: Run MyPy Type Checking
+      run: mypy app
+      
+    - name: Test Alembic Migrations
+      run: alembic upgrade head
+      env:
+        DATABASE_URL: "sqlite:///./ci_test.db"
+        
+    - name: Run Pytest
+      run: pytest tests/ --cov=app --cov-report=xml
+      
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: false
+        
+    - name: Build Docker Image
+      run: docker build -t sans-backend:latest .
+      
+    - name: Run Trivy Vulnerability Scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'sans-backend:latest'
+        format: 'table'
+        exit-code: '0'
+        ignore-unfixed: true
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH'
