@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     ANALYTICS_ENABLED: bool = True
     
     # WhatsApp
-    WHATSAPP_VERIFY_TOKEN: str = "sans-verify-token"
+    WHATSAPP_VERIFY_TOKEN: str = "kamo2008"
     
     # Supabase (Storage)
     SUPABASE_URL: str | None = None

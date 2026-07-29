@@ -6,13 +6,13 @@ from app.core.config import settings
 client = TestClient(app)
 
 def test_verify_whatsapp_webhook_success(monkeypatch):
-    monkeypatch.setattr(settings, "WHATSAPP_VERIFY_TOKEN", "sans_webhook_verify_2026")
+    monkeypatch.setattr(settings, "WHATSAPP_VERIFY_TOKEN", "kamo2008")
     
     response = client.get(
         "/api/webhooks/whatsapp",
         params={
             "hub.mode": "subscribe",
-            "hub.verify_token": "sans_webhook_verify_2026",
+            "hub.verify_token": "kamo2008",
             "hub.challenge": "999999"
         }
     )
@@ -21,7 +21,7 @@ def test_verify_whatsapp_webhook_success(monkeypatch):
     assert response.text == "999999"
 
 def test_verify_whatsapp_webhook_failure(monkeypatch):
-    monkeypatch.setattr(settings, "WHATSAPP_VERIFY_TOKEN", "sans_webhook_verify_2026")
+    monkeypatch.setattr(settings, "WHATSAPP_VERIFY_TOKEN", "kamo2008")
     
     response = client.get(
         "/api/webhooks/whatsapp",
