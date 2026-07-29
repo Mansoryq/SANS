@@ -58,11 +58,20 @@ class PassengerAPIConnector:
         results = []
         for i, (fn, ln) in enumerate(names[:10]):
             pid = f"P{hash(flight_id + fn) & 0xFFFFFF:06X}"
+            
+            # Map specific phone numbers to the first two passengers for testing
+            if i == 0:
+                phone_number = "77763348996"
+            elif i == 1:
+                phone_number = "77763367314"
+            else:
+                phone_number = f"7701{1000000 + (hash(pid) % 8999999)}"
+                
             results.append({
                 "passenger_id": pid,
                 "first_name": fn,
                 "last_name": ln,
-                "phone_number": f"+7701{1000000 + (hash(pid) % 8999999)}",
+                "phone_number": phone_number,
                 "flight_id": flight_id,
                 "seat_number": f"{i+1}{random.choice('ABCDEF')}",
                 "booking_reference": f"REF{i+100}",
