@@ -15,7 +15,8 @@ from app.core.config import settings
 
 @router.get("/whatsapp")
 def verify_whatsapp_webhook(
-    request: Request
+    request: Request,
+    db: Session = Depends(get_db)
 ):
     """
     Webhook verification endpoint for WhatsApp Business API.
@@ -27,8 +28,10 @@ def verify_whatsapp_webhook(
     challenge = request.query_params.get("hub.challenge", "")
     mode = request.query_params.get("hub.mode", "")
     
-    # Get the configured verify token from settings
-    expected_token = settings.WHATSAPP_VERIFY_TOKEN
+    # Priority 1: Database
+    # Priority 2: Environment variable / settings
+    db_token = AppSetting.get(db, 'meta_verify_token', None)
+    expected_token = db_token if db_token else settings.WHATSAPP_VERIFY_TOKEN
     
     logger.info(
         f"WhatsApp webhook verification | mode={mode} | "
@@ -38,7 +41,7 @@ def verify_whatsapp_webhook(
     
     if mode == "subscribe" and verify_token == expected_token:
         logger.info("WhatsApp webhook verified successfully.")
-        return PlainTextResponse(content=str(challenge))
+        return PlainTextResponse(content=str(challenge), status_code=200)
     
     logger.warning("Webhook verification failed. Token mismatch.")
     raise HTTPException(status_code=403, detail="Verification failed")
