@@ -10,31 +10,37 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
 
+from fastapi.responses import PlainTextResponse
+from app.core.config import settings
+
 @router.get("/whatsapp")
 def verify_whatsapp_webhook(
-    request: Request,
-    db: Session = Depends(get_db)
+    request: Request
 ):
     """
     Webhook verification endpoint for WhatsApp Business API.
     Meta will send a GET request here when you configure the webhook URL.
     """
-    mode = AppSetting.get(db, 'mode', 'mock')
     
     # Extract query parameters
-    verify_token = request.query_params.get("hub.verify_token")
-    challenge = request.query_params.get("hub.challenge")
-    mode_param = request.query_params.get("hub.mode")
+    verify_token = request.query_params.get("hub.verify_token", "")
+    challenge = request.query_params.get("hub.challenge", "")
+    mode = request.query_params.get("hub.mode", "")
     
-    # Get the configured verify token from DB
-    configured_token = AppSetting.get(db, 'meta_verify_token', 'sans-verify-token')
+    # Get the configured verify token from settings
+    expected_token = settings.WHATSAPP_VERIFY_TOKEN
     
-    if mode_param == "subscribe" and verify_token == configured_token:
+    logger.info(
+        f"WhatsApp webhook verification | mode={mode} | "
+        f"received_token={verify_token[:5] + '***' if verify_token else 'None'} | "
+        f"expected_token={expected_token[:5] + '***' if expected_token else 'None'}"
+    )
+    
+    if mode == "subscribe" and verify_token == expected_token:
         logger.info("WhatsApp webhook verified successfully.")
-        # Return raw challenge as plain integer/string per Meta's requirement
-        return int(challenge) if challenge and challenge.isdigit() else challenge
+        return PlainTextResponse(content=str(challenge))
     
-    logger.warning(f"Webhook verification failed. Token mismatch: {verify_token} != {configured_token}")
+    logger.warning("Webhook verification failed. Token mismatch.")
     raise HTTPException(status_code=403, detail="Verification failed")
 
 @router.post("/whatsapp")

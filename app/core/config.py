@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     POSTHOG_HOST: str = "https://eu.i.posthog.com"
     ANALYTICS_ENABLED: bool = True
     
+    # WhatsApp
+    WHATSAPP_VERIFY_TOKEN: str = "sans-verify-token"
+    
     # Supabase (Storage)
     SUPABASE_URL: str | None = None
     SUPABASE_KEY: str | None = None

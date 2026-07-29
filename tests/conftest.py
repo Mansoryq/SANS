@@ -45,9 +45,9 @@ def client(db_session):
 
 @pytest.fixture(autouse=True)
 def mock_external_services():
-    with patch("app.services.flight_api.FlightAPIClient.get_flights") as mock_flights, \
-         patch("app.services.passenger_api.PassengerAPIClient.get_passengers_for_flight") as mock_passengers, \
-         patch("app.services.whatsapp.WhatsAppService.send_template_message") as mock_wa:
+    with patch("app.services.flight_api.FlightAPIConnector.get_flights") as mock_flights, \
+         patch("app.services.passenger_api.PassengerAPIConnector.get_passengers_for_flight") as mock_passengers, \
+         patch("app.services.whatsapp.WhatsAppService.send_whatsapp") as mock_wa:
         
         mock_flights.return_value = []
         mock_passengers.return_value = []
