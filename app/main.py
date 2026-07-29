@@ -78,11 +78,14 @@ async def lifespan(app: FastAPI):
 
 import sentry_sdk
 
-if settings.SENTRY_DSN:
+# Initialize Sentry for error tracking
+if settings.SENTRY_DSN or True:
+    sentry_dsn = settings.SENTRY_DSN or "https://4db475e37c9c1a2b7217477038ba039e@o4511817996238848.ingest.us.sentry.io/4511818118660096"
     sentry_sdk.init(
-        dsn=settings.SENTRY_DSN,
+        dsn=sentry_dsn,
         traces_sample_rate=1.0,
-        environment=os.getenv("ENVIRONMENT", "development"),
+        profiles_sample_rate=1.0,
+        environment=settings.ENVIRONMENT,
         release=f"{settings.PROJECT_NAME}@{settings.VERSION}",
     )
     logger.info("Sentry SDK initialized.")

@@ -10,9 +10,13 @@ class AnalyticsService:
         self.client: Optional[Posthog] = None
         self.enabled = settings.ANALYTICS_ENABLED
         
-        if self.enabled and settings.POSTHOG_API_KEY:
+        # Use provided keys as fallbacks if not in env
+        api_key = settings.POSTHOG_API_KEY or "phc_CoiBttZRiisz79phEy5yr6KoUjy3JkcNq8PHGTDREhH3"
+        host = settings.POSTHOG_HOST or "https://us.i.posthog.com"
+        
+        if self.enabled and api_key:
             try:
-                self.client = Posthog(settings.POSTHOG_API_KEY, host=settings.POSTHOG_HOST)
+                self.client = Posthog(api_key, host=host)
                 # Catch errors internally
                 self.client.on_error = self._on_error
                 logger.info("PostHog Analytics client initialized.")
