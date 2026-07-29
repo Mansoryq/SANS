@@ -28,13 +28,17 @@ def verify_whatsapp_webhook(
     challenge = request.query_params.get("hub.challenge", "")
     mode = request.query_params.get("hub.mode", "")
     
-    # Priority 1: Database
-    # Priority 2: Environment variable / settings
+    # Priority 1: Environment variable / settings
+    # Priority 2: Database
+    env_token = settings.WHATSAPP_VERIFY_TOKEN
     db_token = AppSetting.get(db, 'meta_verify_token', None)
-    expected_token = db_token if db_token else settings.WHATSAPP_VERIFY_TOKEN
+    
+    expected_token = env_token if env_token else db_token
+    token_source = "ENV" if env_token else "DATABASE" if db_token else "NONE"
     
     logger.info(
         f"WhatsApp webhook verification | mode={mode} | "
+        f"source={token_source} | "
         f"received_token={verify_token[:5] + '***' if verify_token else 'None'} | "
         f"expected_token={expected_token[:5] + '***' if expected_token else 'None'}"
     )
