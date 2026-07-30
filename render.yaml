@@ -25,6 +25,8 @@ services:
         sync: false
       - key: SUPABASE_KEY
         sync: false
+      - key: BAILEYS_API_URL
+        value: "https://sans-whatsapp-baileys.onrender.com"
 
   - type: worker
     name: sans-worker
@@ -61,6 +63,11 @@ services:
           type: web
           name: sans-web
           envVarKey: POSTHOG_API_KEY
+      - key: BAILEYS_API_URL
+        fromService:
+          type: web
+          name: sans-web
+          envVarKey: BAILEYS_API_URL
 
   - type: web
     name: sans-whatsapp-baileys
