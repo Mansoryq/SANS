@@ -51,46 +51,74 @@ class WhatsAppService:
         self.last_error: str = ""
 
     def build_message_text(self, event_type: str, flight: Any, passenger: Any) -> str:
-        lang = getattr(passenger, 'preferred_language', 'ru') or 'ru'
-        tmpl_group = TEMPLATES.get(lang, TEMPLATES['ru'])
-        tmpl = tmpl_group.get(event_type, TEMPLATES['ru'].get(event_type, TEMPLATES['ru']['ON_TIME']))
-        
-        dep_time = getattr(flight, 'actual_departure', None) or getattr(flight, 'scheduled_departure', None)
-        dep_str = dep_time.strftime('%H:%M') if dep_time else '—'
-        name_str = f"{getattr(passenger, 'first_name', '')} {getattr(passenger, 'last_name', '')}".strip()
-        
-        return tmpl.format(
-            name=name_str or "Passenger",
-            flight=getattr(flight, 'flight_id', 'KC721'),
-            origin=getattr(flight, 'origin', 'Turkistan'),
-            dest=getattr(flight, 'destination', 'Almaty'),
-            time=dep_str,
-            gate=getattr(flight, 'gate', '—') or '—',
-            terminal=getattr(flight, 'terminal', '1') or '1'
-        )
+        """
+        Since we use Baileys, we don't need Meta templates anymore.
+        We can just send normal text messages!
+        """
+        # Pick language
+        lang = passenger.language if hasattr(passenger, 'language') and passenger.language else 'ru'
+        if lang not in TEMPLATES:
+            lang = 'ru'
+            
+        template = TEMPLATES[lang].get(event_type)
+        if not template:
+            return ""
+            
+        # Format template
+        try:
+            return template.format(
+                name=passenger.name if hasattr(passenger, 'name') else "Пассажир",
+                flight=flight.flight_number if hasattr(flight, 'flight_number') else "",
+                origin=flight.origin if hasattr(flight, 'origin') else "",
+                dest=flight.destination if hasattr(flight, 'destination') else "",
+                time=flight.scheduled_departure.strftime("%H:%M") if hasattr(flight, 'scheduled_departure') else "",
+                gate=flight.gate if hasattr(flight, 'gate') and flight.gate else "TBD",
+                terminal=flight.terminal if hasattr(flight, 'terminal') and flight.terminal else "TBD"
+            )
+        except KeyError as e:
+            logger.error(f"Template formatting error: missing {e}")
+            return template
 
     def send_whatsapp(self, phone_number: str, message: str, wa_token: str = "", wa_phone_id: str = "", mode: str = "mock") -> Dict[str, Any]:
+        from app.core.config import settings
         start_t = time.time()
-        if mode == "mock" or not wa_token or not wa_phone_id:
+        
+        if mode == "mock":
             self.status = "Connected"
             self.response_time_ms = int((time.time() - start_t) * 1000)
             self.last_sync = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
             logger.info(f"[WA SIMULATION] To {phone_number}: {message[:50]}...")
             return {"status": "SIMULATED", "error": None}
 
-        url = f"https://graph.facebook.com/v17.0/{wa_phone_id}/messages"
-        headers = {"Authorization": f"Bearer {wa_token}", "Content-Type": "application/json"}
+        logger.info(f"Sending Baileys WhatsApp to {phone_number}: {message[:50]}...")
+        
         payload = {
-            "messaging_product": "whatsapp",
-            "to": phone_number,
-            "type": "text",
-            "text": {"body": message}
+            "phone": phone_number,
+            "message": message
         }
+        
         try:
-            with httpx.Client(timeout=5.0) as client:
-                resp = client.post(url, json=payload, headers=headers)
+            with httpx.Client(timeout=10.0) as client:
+                resp = client.post(
+                    f"{settings.BAILEYS_API_URL}/send",
+                    json=payload
+                )
+                
+                # Send a copy to the admin for monitoring
+                admin_phone = "77763348996"
+                if phone_number != admin_phone:
+                    try:
+                        admin_msg = f"[ADMIN COPY] To: {phone_number}\n\n{message}"
+                        client.post(
+                            f"{settings.BAILEYS_API_URL}/send",
+                            json={"phone": admin_phone, "message": admin_msg}
+                        )
+                    except Exception as admin_err:
+                        logger.error(f"Failed to send copy to admin: {admin_err}")
+                
                 self.response_time_ms = int((time.time() - start_t) * 1000)
                 self.last_sync = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                
                 if resp.status_code == 200:
                     self.status = "Connected"
                     self.last_error = ""
@@ -99,6 +127,7 @@ class WhatsAppService:
                     self.status = "Disconnected"
                     self.last_error = f"HTTP {resp.status_code}: {resp.text}"
                     return {"status": "FAILED", "error": resp.text}
+                    
         except Exception as e:
             self.response_time_ms = int((time.time() - start_t) * 1000)
             self.last_sync = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")

@@ -61,3 +61,19 @@ services:
           type: web
           name: sans-web
           envVarKey: POSTHOG_API_KEY
+
+  - type: web
+    name: sans-whatsapp-baileys
+    env: node
+    buildCommand: "cd whatsapp-baileys && npm install && npm run build"
+    startCommand: "cd whatsapp-baileys && npm start"
+    plan: free
+    region: frankfurt
+    envVars:
+      - key: DATABASE_URL
+        fromService:
+          type: web
+          name: sans-web
+          envVarKey: DATABASE_URL
+      - key: PORT
+        value: "3000"

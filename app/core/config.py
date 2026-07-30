@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     
     # WhatsApp
     WHATSAPP_VERIFY_TOKEN: str = "kamo2008"
+    BAILEYS_API_URL: str = "http://whatsapp-baileys:3000"
     
     # Supabase (Storage)
     SUPABASE_URL: str | None = None
