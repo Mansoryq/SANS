@@ -34,16 +34,19 @@ class FlightService:
         old_status = flight.status
         old_gate = flight.gate
         old_terminal = flight.terminal
+        old_time = flight.scheduled_departure
 
         updated_flight = self.repo.update_flight(flight, data)
 
         # Trigger events based on changes (Business Logic moved from Router to Service)
         if old_status != updated_flight.status:
             event_engine_service.create_and_process_event(self.db, updated_flight, updated_flight.status, old_status, updated_flight.status)
-        elif old_gate != updated_flight.gate and updated_flight.gate:
+        if old_gate != updated_flight.gate and updated_flight.gate:
             event_engine_service.create_and_process_event(self.db, updated_flight, "GATE_CHANGED", old_gate or "", updated_flight.gate)
-        elif old_terminal != updated_flight.terminal and updated_flight.terminal:
+        if old_terminal != updated_flight.terminal and updated_flight.terminal:
             event_engine_service.create_and_process_event(self.db, updated_flight, "TERMINAL_CHANGED", old_terminal or "", updated_flight.terminal)
+        if old_time != updated_flight.scheduled_departure and updated_flight.scheduled_departure:
+            event_engine_service.create_and_process_event(self.db, updated_flight, "TIME_CHANGED", old_time.isoformat() if old_time else "", updated_flight.scheduled_departure.isoformat())
 
         invalidate_cache("list_flights")
         return updated_flight
