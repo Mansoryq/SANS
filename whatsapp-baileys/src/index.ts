@@ -4,7 +4,7 @@ import { Pool } from 'pg'
 import makeWASocket, { DisconnectReason } from '@whiskeysockets/baileys'
 import { Boom } from '@hapi/boom'
 import * as qrcode from 'qrcode-terminal'
-import { usePgAuthState } from './auth.js'
+import { usePgAuthState, clearPgAuthState } from './auth.js'
 
 const app = express()
 app.use(express.json())
@@ -19,35 +19,61 @@ const pool = new Pool({
 
 let sock: any = null
 let qrCodeString = ''
+let isConnecting = false
 
 async function connectToWhatsApp() {
-    const { state, saveCreds } = await usePgAuthState(pool, 'sans-bot')
-    
-    sock = makeWASocket({
-        auth: state,
-        printQRInTerminal: true,
-        logger: pino({ level: 'silent' })
-    })
+    if (isConnecting) {
+        console.log("Already connecting...")
+        return
+    }
 
-    sock.ev.on('connection.update', (update: any) => {
-        const { connection, lastDisconnect, qr } = update
-        if (qr) {
-            qrCodeString = qr
-            qrcode.generate(qr, { small: true })
-        }
-        if (connection === 'close') {
-            const shouldReconnect = (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut
-            console.log('Connection closed due to ', lastDisconnect?.error, ', reconnecting ', shouldReconnect)
-            if (shouldReconnect) {
-                connectToWhatsApp()
+    isConnecting = true
+
+    try {
+        const { state, saveCreds } = await usePgAuthState(pool, 'sans-bot')
+        
+        sock = makeWASocket({
+            auth: state,
+            printQRInTerminal: true,
+            logger: pino({ level: 'silent' })
+        })
+
+        sock.ev.on('connection.update', async (update: any) => {
+            const { connection, lastDisconnect, qr } = update
+            if (qr) {
+                console.log('QR generated')
+                qrCodeString = qr
+                qrcode.generate(qr, { small: true })
             }
-        } else if (connection === 'open') {
-            console.log('WhatsApp connection opened!')
-            qrCodeString = ''
-        }
-    })
+            if (connection === 'close') {
+                const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode
+                console.log('WhatsApp disconnected:', statusCode)
 
-    sock.ev.on('creds.update', saveCreds)
+                if (statusCode === DisconnectReason.loggedOut) {
+                    console.log('Logged out. Delete session and scan QR again')
+                    await clearPgAuthState(pool, 'sans-bot')
+                    setTimeout(() => {
+                        connectToWhatsApp()
+                    }, 5000)
+                    return
+                }
+
+                console.log('Reconnect in 5 seconds...')
+                setTimeout(() => {
+                    connectToWhatsApp()
+                }, 5000)
+
+            } else if (connection === 'open') {
+                console.log('WhatsApp connection opened!')
+                console.log('WhatsApp connected')
+                qrCodeString = ''
+            }
+        })
+
+        sock.ev.on('creds.update', saveCreds)
+    } finally {
+        isConnecting = false
+    }
 }
 
 connectToWhatsApp().catch(console.error)
@@ -71,6 +97,13 @@ app.get('/status', (req, res) => {
     }
 })
 
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        whatsapp: sock?.user ? 'connected' : 'disconnected'
+    })
+})
+
 app.post('/send', async (req, res) => {
     try {
         const { phone, message } = req.body
@@ -91,10 +124,11 @@ app.post('/send', async (req, res) => {
         }
         
         await sock.sendMessage(result.jid, { text: message })
-        res.json({ success: true, message: 'Message sent' })
+        console.log(`Message sent to ${phone}`)
+        res.json({ success: true, message: 'sent' })
         
     } catch (error: any) {
-        console.error('Error sending message:', error)
+        console.error('WhatsApp error:', error)
         res.status(500).json({ error: error.message })
     }
 })

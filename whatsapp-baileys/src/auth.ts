@@ -88,3 +88,7 @@ export const usePgAuthState = async (pool: Pool, session_name: string) => {
         }
     }
 }
+
+export const clearPgAuthState = async (pool: Pool, session_name: string) => {
+    await pool.query('DELETE FROM baileys_auth WHERE session_name = $1', [session_name])
+}
