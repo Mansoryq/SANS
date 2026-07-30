@@ -4,7 +4,7 @@ import { Pool } from 'pg'
 import makeWASocket, { DisconnectReason } from '@whiskeysockets/baileys'
 import { Boom } from '@hapi/boom'
 import * as qrcode from 'qrcode-terminal'
-import { usePgAuthState } from './auth'
+import { usePgAuthState } from './auth.js'
 
 const app = express()
 app.use(express.json())
