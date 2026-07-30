@@ -24,6 +24,7 @@
     "@types/express": "^5.0.6",
     "@types/node": "^26.1.2",
     "@types/pg": "^8.20.0",
+    "@types/qrcode-terminal": "^0.12.2",
     "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",
     "typescript": "^7.0.2"
