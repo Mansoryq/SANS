@@ -15,7 +15,7 @@ class PassengerBase(BaseModel):
     preferred_language: str = "ru"
 
 class PassengerCreate(PassengerBase):
-    pass
+    passenger_id: Optional[str] = None
 
 class PassengerUpdate(BaseModel):
     first_name: Optional[str] = None
